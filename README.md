@@ -10,6 +10,12 @@ You will need to install torch (and CUDA, if you want to use NVIDIA GPU-accelera
 Overall the following should work, in most instances (except CUDA, which you will have to install manually, if you plan to use NVIDIA GPUs):  
 `uv venv`  
 (Linux/macOS): `source .venv\bin\activate`  
+
+On Windows, in cmd.exe  
+`venv\Scripts\activate.bat`  
+In PowerShell  
+`venv\Scripts\Activate.ps1`  
+
 `uv pip install torch`  
 `uv pip install numpy`  
 `uv pip install mlx-whisper` (this may yield an error if you are not on macOS, you can ignore this, if so)  
