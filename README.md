@@ -21,6 +21,6 @@ You will be able to see the transcribed text in the console. By default, a trans
 
 Add a `<filename_prefix>` to the command-line arguments to change the transcript filename prefix.
 
-Add a `--loopback` command line argument to capture audio from a playback device. For Windows, you will need to change the default input device to "Stereo Mix" or something similar to capture the audio. See requirements for macOS above. The script latches onto the "sysdefault" sudio sink but this may or may not be correct for your system - modify the script to suit your needs.
+Add a `--loopback` command line argument to capture audio from a playback device. For Windows, you will need to change the default input device to "Stereo Mix" or something similar to capture the audio. See requirements for macOS above. The script latches onto the "sysdefault" ALSA audio sink but this may or may not be correct for your system - modify the script to suit your needs.
 
 
