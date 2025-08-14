@@ -9,11 +9,14 @@ You will need to install torch (and CUDA, if you want to use NVIDIA GPU-accelera
 
 Overall the following should work, in most instances (except CUDA, which you will have to install manually, if you plan to use NVIDIA GPUs):  
 `uv venv`  
-(Linux/macOS): `source .venv\bin\activate`  
 
-On Windows, in cmd.exe  
+(Linux/macOS): 
+`source .venv\bin\activate`  
+
+(Windows), in cmd.exe  
 `venv\Scripts\activate.bat`  
-In PowerShell  
+
+(Windows) or, in PowerShell  
 `venv\Scripts\Activate.ps1`  
 
 `uv pip install torch`  
