@@ -1,3 +1,9 @@
+#----------------------------------------------------------
+#  STT-realtime
+#  Copyright (c) 2025 Akshay Mishra
+#  This file is part of the Hikari project. You may modify and distribute this file 
+#  under the terms of the MIT license. See LICENSE.md in the project root for license information.
+#----------------------------------------------------------
 import pyaudio
 import platform
 import torch
