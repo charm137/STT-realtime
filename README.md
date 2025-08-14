@@ -5,7 +5,7 @@ The default settings are configured to translate Japanese audio to English.
 This script has been tested on Windows, macOS and Linux (Fedora 42) using whisper-large-v3, whisper-large-v3-turbo, base, medium for transcription and then utilizing the [gemma-3-4b-qat](https://huggingface.co/collections/google/gemma-3-qat-67ee61ccacbf2be4195c265b) LLM model for translation to English. For Windows and Linux, NVIDIA GPUs have been tested although it should be possible to run this on AMD or Intel GPUs with minimal changes. Playing about with the parameters and different models is recommended, depending on your machine configuration. Naturally, higher GPU VRAM (at least 8GB) or total RAM (in the case of macOS; >= 24GB recommended) would lead to better real-time performance.
 
 ## Dependencies
-You need to install torch (and CUDA, if you want to use NVIDIA GPU-acceleration), mlx-whisper (for macOS), whisper and numpy. Use of uv is recommended instead of utilizing pip directly. Python 3.12+ should work.
+You will need to install torch (and CUDA, if you want to use NVIDIA GPU-acceleration), mlx-whisper (for macOS), whisper and numpy. Use of uv is recommended instead of utilizing pip directly. Python 3.12+ should work.
 
 
 ## Recommendations
