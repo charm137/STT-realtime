@@ -18,6 +18,8 @@ You will need to install torch (and CUDA, if you want to use NVIDIA GPU-accelera
 Run:
 `python mic_stream.py`
 
+Make sure your LM Studio server is running and has loaded up an LLM model.
+
 You will be able to see the transcribed text in the console. By default, a transcript file would be created within a "transcripts" directory within the current working directory.
 
 Add a `<filename_prefix>` to the command-line arguments to change the transcript filename prefix.
