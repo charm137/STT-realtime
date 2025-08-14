@@ -1,8 +1,8 @@
 # STT-realtime
-Python script to transcribe audio from mic or loopback utilizing whisper and LM Studio. The models run entirely locally (the system may try to download the Whisper model files for an initial run).
+Python script to transcribe audio from mic or loopback utilizing OpenAI's [whisper](https://github.com/openai/whisper) and [LM Studio as a local server](https://lmstudio.ai/docs/app/api/headless). The models run entirely locally (the system may try to download the Whisper model files for an initial run).
 The default settings are configured to translate Japanese audio to English.
 
-This script has been tested on Windows, macOS and Linux (Fedora 42) using whisper-large-v3, whisper-large-v3-turbo, base, medium for transcription and then utilizing the gemma-3-4b-qat LLM for translation to English. For Windows and Linux, NVIDIA GPUs have been tested although it should be possible to run this on AMD or Intel GPUs with minimal changes. Playing about with the parameters and different models is recommended, depending on your machine configuration. Naturally, higher GPU VRAM (at least 8GB) or total RAM (in the case of macOS; >= 24GB recommended) would lead to better real-time performance.
+This script has been tested on Windows, macOS and Linux (Fedora 42) using whisper-large-v3, whisper-large-v3-turbo, base, medium for transcription and then utilizing the [gemma-3-4b-qat](https://huggingface.co/collections/google/gemma-3-qat-67ee61ccacbf2be4195c265b) LLM model for translation to English. For Windows and Linux, NVIDIA GPUs have been tested although it should be possible to run this on AMD or Intel GPUs with minimal changes. Playing about with the parameters and different models is recommended, depending on your machine configuration. Naturally, higher GPU VRAM (at least 8GB) or total RAM (in the case of macOS; >= 24GB recommended) would lead to better real-time performance.
 
 ## Dependencies
 You need to install torch (and CUDA, if you want to use NVIDIA GPU-acceleration), mlx-whisper (for macOS), whisper and numpy. Use of uv is recommended instead of utilizing pip directly. Python 3.12+ should work.
@@ -12,6 +12,7 @@ You need to install torch (and CUDA, if you want to use NVIDIA GPU-acceleration)
 1. For capturing loopback audio on macOS, you will need to install the Blackhole 2ch virtual audio driver (via homebrew or manually). 
 2. Use of a venv is recommended
 3. It is also recommended to install the latest torch nightly build if you are using macOS, so that MPS-based GPU acceleration can be utilized
+4. The context window for the LLM hosted on LM Studio can be pretty short, to help with resource usage: 512 or so tokens should suffice
 
 ## Usage
 Run:
