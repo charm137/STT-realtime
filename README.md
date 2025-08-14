@@ -7,7 +7,7 @@ This script has been tested on Windows, macOS and Linux (Fedora 42) using whispe
 ## Dependencies
 You will need to install torch (and CUDA, if you want to use NVIDIA GPU-acceleration), mlx-whisper (for macOS), pyaudio whisper and numpy. Use of uv is recommended instead of utilizing pip directly. Python 3.12+ should work.
 
-Overall the following should work, in most instances (except CUDA, which you will have to install manually, if you plan to use NVIDIA GPUs):
+Overall the following should work, in most instances (except CUDA, which you will have to install manually, if you plan to use NVIDIA GPUs):  
 `uv venv`  
 (Linux/macOS): `source .venv\bin\activate`  
 `uv pip install torch`  
