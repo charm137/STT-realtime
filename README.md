@@ -9,7 +9,7 @@ You need to install torch (and CUDA, if you want to use NVIDIA GPU-acceleration)
 
 
 ## Recommendations
-1. For capturing loopback audio on macOS, you will need to install the Blackhole 2ch virtual audio driver (via homebrew or manually). 
+1. For capturing loopback audio on macOS, you will need to install the [Blackhole 2ch](https://github.com/ExistentialAudio/BlackHole) virtual audio driver (via homebrew or manually). 
 2. Use of a venv is recommended
 3. It is also recommended to install the latest torch nightly build if you are using macOS, so that MPS-based GPU acceleration can be utilized
 4. The context window for the LLM hosted on LM Studio can be pretty short, to help with resource usage: 512 or so tokens should suffice
