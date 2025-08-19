@@ -58,11 +58,36 @@ if WHISPER_MODEL_DIR and not os.path.exists(WHISPER_MODEL_DIR):
     print(f"Created custom Whisper model directory: {WHISPER_MODEL_DIR}")
 
 # --- Dynamic Library Loading based on Device ---
-# Prioritize CUDA, then MPS, and finally default to CPU.
+# Prioritize CUDA, then Apple Silicon (whisper.cpp), then MPS, and finally default to CPU.
+use_mlx_whisper = False
+use_whisper_cpp = False
+
+# 1. Check for CUDA
 if torch.cuda.is_available():
     device = "cuda"
     print("CUDA device detected. Using the original whisper module.")
-    use_mlx_whisper = False
+# 2. Check for Apple Neural Engine support (for pywhispercpp)
+elif platform.system() == "Darwin" and platform.machine() == "arm64":
+    try:
+        from pywhispercpp.model import Model
+        device = "ane"
+        print("Apple Silicon with Neural Engine detected. Using pywhispercpp for optimized performance.")
+        use_whisper_cpp = True
+    except ImportError:
+        print("pywhispercpp not found. Checking for MPS (mlx-whisper).")
+        if torch.backends.mps.is_available():
+            device = "mps"
+            try:
+                import mlx_whisper
+                import mlx.core as mx
+                print("MPS device detected. Using mlx-whisper for optimized performance.")
+                use_mlx_whisper = True
+            except ImportError:
+                print("mlx-whisper not found. Falling back to the original whisper module.")
+        else:
+            device = "cpu"
+            print("No MPS device detected. Falling back to the original whisper module on CPU.")
+# 3. Check for MPS on other platforms
 elif torch.backends.mps.is_available():
     device = "mps"
     try:
@@ -72,26 +97,31 @@ elif torch.backends.mps.is_available():
         use_mlx_whisper = True
     except ImportError:
         print("mlx-whisper not found. Falling back to the original whisper module.")
-        import whisper
-        use_mlx_whisper = False
+# 4. Check for Intel XPU
 elif hasattr(torch, 'xpu') and torch.xpu.is_available():
     device = "xpu"
     print("Intel GPU (XPU) device detected. Using the original whisper module.")
-    use_mlx_whisper = False
+# 5. Fallback to CPU
 else:
     device = "cpu"
     print("No CUDA, MPS, or XPU device detected. Using the original whisper module on CPU.")
-    use_mlx_whisper = False
 
 
-# Conditionally import the standard whisper module if not using mlx-whisper
-if not use_mlx_whisper:
+# Conditionally import the standard whisper module if not using an alternative
+if not use_mlx_whisper and not use_whisper_cpp:
     import whisper
 
 
 # Load the Whisper model for transcription onto the selected device and with float16.
 try:
-    if use_mlx_whisper:
+    if use_whisper_cpp:
+        # For pywhispercpp, we initialize the Whisper object.
+        # It will download the ggml model to its cache.
+        print(f"Loading Whisper.cpp {WHISPER_MODEL} model...")
+        whisper_model = Model(model=WHISPER_MODEL, models_dir=WHISPER_MODEL_DIR
+                                , redirect_whispercpp_logs_to=None)
+        print(f"Whisper.cpp {WHISPER_MODEL} model loaded successfully.")
+    elif use_mlx_whisper:
         # For mlx-whisper, we pass the path directly to the transcribe function.
         # It handles downloading the model to this path if it doesn't exist.
         whisper_model = WHISPER_MODEL_MLX
@@ -155,29 +185,32 @@ def process_audio():
                 
                 # This is the 5-second sliding window that gets transcribed
                 segment_to_transcribe = audio_array[start_of_window:end_of_window]
-                # IMPORTANT: Convert the numpy array to a float32 PyTorch tensor on the correct device.
-                audio_tensor = torch.from_numpy(segment_to_transcribe).to(device=device, dtype=torch.float32)
                 
-
-                if use_mlx_whisper:
+                if use_whisper_cpp:
+                    # Transcribe using pywhispercpp. It expects a float32 numpy array.
+                    result_segments = whisper_model.transcribe(segment_to_transcribe, language="ja")
+                    japanese_text = " ".join([s.text for s in result_segments]).strip()
+                elif use_mlx_whisper:
                     # Transcribe using mlx-whisper. Note the API differences.
                     # path_or_hf_repo can be a local path or a Hugging Face model ID.
                     result = mlx_whisper.transcribe(segment_to_transcribe, path_or_hf_repo=whisper_model, language="ja")
+                    japanese_text = result["text"].strip()
                 else:
+                    # IMPORTANT: Convert the numpy array to a float32 PyTorch tensor on the correct device.
+                    audio_tensor = torch.from_numpy(segment_to_transcribe).to(device=device, dtype=torch.float32)
                     # Transcribe using original whisper model             
                     result = whisper_model.transcribe(audio_tensor, language="ja"
                                                   , no_speech_threshold=WHISPER_NO_SPEECH_THRESHOLD
                                                   , logprob_threshold=WHISPER_LOG_PROB_THRESHOLD
                                                   #, initial_prompt="Meeting transcript:"
                                                   )                
-                japanese_text = result["text"].strip()
+                    japanese_text = result["text"].strip()
                 
                 if japanese_text and japanese_text != last_japanese_text and japanese_text != "ご視聴ありがとうございました":
                     japanese_output = f"[{current_time}] JP: {japanese_text}"
                     print(japanese_output)
                     if log_file:
                         log_file.write(japanese_output + "\n")
-                    last_japanese_text = japanese_text
                     last_japanese_text = japanese_text
 
                     # --- Translation with LM Studio ---
