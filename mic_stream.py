@@ -17,6 +17,7 @@ import datetime
 import json
 import os
 import sys
+from termcolor import colored
 
 # --- Audio Streaming Configuration ---
 # You may need to adjust these values based on your microphone.
@@ -58,7 +59,7 @@ if WHISPER_MODEL_DIR and not os.path.exists(WHISPER_MODEL_DIR):
     print(f"Created custom Whisper model directory: {WHISPER_MODEL_DIR}")
 
 # --- Dynamic Library Loading based on Device ---
-# Prioritize CUDA, then Apple Silicon (whisper.cpp), then MPS, and finally default to CPU.
+# Prioritize CUDA, then Apple Neural Engine (whisper.cpp), then MPS, and finally default to CPU.
 use_mlx_whisper = False
 use_whisper_cpp = False
 
@@ -208,7 +209,7 @@ def process_audio():
                 
                 if japanese_text and japanese_text != last_japanese_text and japanese_text != "ご視聴ありがとうございました":
                     japanese_output = f"[{current_time}] JP: {japanese_text}"
-                    print(japanese_output)
+                    print(colored(japanese_output, "light_red", "on_light_grey"))
                     if log_file:
                         log_file.write(japanese_output + "\n")
                     last_japanese_text = japanese_text
@@ -239,7 +240,7 @@ def process_audio():
                         translated_text = response_data['choices'][0]['message']['content'].strip()
                         
                         english_output = f"[{current_time}] ENG: {translated_text}"
-                        print(english_output)
+                        print(colored(english_output, "cyan", attrs=["bold"]))
                         if log_file:
                             log_file.write(english_output + "\n")
                     except requests.exceptions.RequestException as e:
