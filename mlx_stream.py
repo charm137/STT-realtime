@@ -20,7 +20,7 @@ import soundfile as sf
 from termcolor import colored
 
 # --- Audio Streaming Configuration ---
-CHUNK = 1024
+CHUNK = 2048
 FORMAT = pyaudio.paInt16
 CHANNELS = 1
 # ASR standard sample rate
@@ -29,12 +29,20 @@ RATE = 16000
 # LM Studio API Configuration
 LM_STUDIO_URL = "http://localhost:1234/v1/chat/completions"
 
-PROCESSING_HOP_SECONDS = 4
-ASR_WINDOW_SECONDS = 5
+PROCESSING_HOP_SECONDS = 3
+ASR_WINDOW_SECONDS = 4
 
 # --- Model Configuration ---
 # Load the ASR model
 ASR_MODEL_ID = "mlx-community/Qwen3-ASR-1.7B-8bit"
+
+if "--voxtral" in sys.argv:
+    ASR_MODEL_ID = "mlx-community/Voxtral-Mini-4B-Realtime-2602-4bit"
+elif "--model" in sys.argv:
+    model_idx = sys.argv.index("--model")
+    if model_idx + 1 < len(sys.argv):
+        ASR_MODEL_ID = sys.argv[model_idx + 1]
+
 SOURCE_LANGUAGE = "ja" # Original script target language
 
 try:
@@ -207,9 +215,16 @@ if __name__ == "__main__":
 
     filename_prefix = "Transcript-ASR"
     if len(sys.argv) > 1:
+        skip_next = False
         for i in range(1, len(sys.argv)):
+            if skip_next:
+                skip_next = False
+                continue
             cmd_arg = sys.argv[i]
-            if (cmd_arg != "--loopback"):
+            if cmd_arg == "--model":
+                skip_next = True
+                continue
+            if cmd_arg not in ("--loopback", "--voxtral"):
                 filename_prefix = cmd_arg
                 break      
 
