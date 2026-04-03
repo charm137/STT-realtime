@@ -34,7 +34,9 @@ ASR_WINDOW_SECONDS = 4
 
 # --- Model Configuration ---
 # Load the ASR model
-ASR_MODEL_ID = "mlx-community/gemma-4-e2b-it-4bit"
+ASR_MODEL_ID = "mlx-community/parakeet-tdt_ctc-0.6b-ja"
+# ASR_MODEL_ID = "google/gemma-4-e2b-it"
+# ASR_MODEL_ID = "mlx-community/gemma-4-e2b-it-4bit"
 
 if "--voxtral" in sys.argv:
     ASR_MODEL_ID = "mlx-community/Voxtral-Mini-4B-Realtime-2602-4bit"
@@ -47,10 +49,10 @@ SOURCE_LANGUAGE = "ja" # Original script target language
 
 asr_model = None
 asr_processor = None
-use_mlx_vlm = "gemma-4" in ASR_MODEL_ID.lower() or "vlm" in ASR_MODEL_ID.lower()
+use_gemma4_asr = "gemma-4" in ASR_MODEL_ID.lower()
 
 try:
-    if use_mlx_vlm:
+    if use_gemma4_asr:
         from mlx_vlm import load, generate
         from mlx_vlm.prompt_utils import apply_chat_template
         print(f"Loading Multimodal model: {ASR_MODEL_ID}...")
@@ -62,8 +64,8 @@ try:
         asr_model = load(ASR_MODEL_ID)
         print(f"ASR model {ASR_MODEL_ID} loaded successfully via mlx-audio.")
 except ImportError:
-    print(f"Error: {'mlx-vlm' if use_mlx_vlm else 'mlx-audio'} is not installed. Please install it using:")
-    print(f"pip install {'mlx-vlm' if use_mlx_vlm else 'mlx-audio'}")
+    print(f"Error: {'mlx-vlm' if use_gemma4_asr else 'mlx-audio'} is not installed. Please install it using:")
+    print(f"pip install {'mlx-vlm' if use_gemma4_asr else 'mlx-audio'}")
     sys.exit(1)
 except Exception as e:
     print(f"Error loading model: {e}")
@@ -109,12 +111,20 @@ def process_audio():
                 sf.write(temp_filename, segment_to_transcribe, RATE)
 
                 # Transcribe
-                if use_mlx_vlm:
-                    prompt = f"Transcribe the following {SOURCE_LANGUAGE} speech exactly as spoken:"
+                if use_gemma4_asr:
+                    prompt = f"Transcribe the following {SOURCE_LANGUAGE} speech to English"
                     formatted_prompt = apply_chat_template(
                         asr_processor, asr_model.config, prompt, num_audios=1
                     )
-                    result = generate(asr_model, asr_processor, prompt, audio=[temp_filename], max_tokens=100, verbose=False, temperature=0.0)
+                    result = generate(asr_model
+                                      , asr_processor
+                                      , formatted_prompt
+                                      , audio=[temp_filename]
+                                      , max_tokens=100
+                                      , verbose=False
+                                      , temperature=1.0
+                                      , top_p=0.95
+                                      , top_k=64)
                 else:
                     result = asr_model.generate(temp_filename, language=SOURCE_LANGUAGE)
                 
@@ -134,7 +144,7 @@ def process_audio():
                     last_transcribed_text = transcribed_text
 
                     # --- Translation with LM Studio ---
-                    if not use_mlx_vlm:
+                    if not use_gemma4_asr:
                         try:
                             headers = {"Content-Type": "application/json"}
                             payload = {
