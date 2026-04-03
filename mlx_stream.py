@@ -34,7 +34,7 @@ ASR_WINDOW_SECONDS = 4
 
 # --- Model Configuration ---
 # Load the ASR model
-ASR_MODEL_ID = "mlx-community/Qwen3-ASR-1.7B-8bit"
+ASR_MODEL_ID = "mlx-community/gemma-4-e2b-it-4bit"
 
 if "--voxtral" in sys.argv:
     ASR_MODEL_ID = "mlx-community/Voxtral-Mini-4B-Realtime-2602-4bit"
@@ -45,14 +45,25 @@ elif "--model" in sys.argv:
 
 SOURCE_LANGUAGE = "ja" # Original script target language
 
+asr_model = None
+asr_processor = None
+use_mlx_vlm = "gemma-4" in ASR_MODEL_ID.lower() or "vlm" in ASR_MODEL_ID.lower()
+
 try:
-    from mlx_audio.stt import load
-    print(f"Loading ASR model: {ASR_MODEL_ID}...")
-    asr_model = load(ASR_MODEL_ID)
-    print("ASR model {ASR_MODEL_ID} loaded successfully via mlx-audio.")
+    if use_mlx_vlm:
+        from mlx_vlm import load, generate
+        from mlx_vlm.prompt_utils import apply_chat_template
+        print(f"Loading Multimodal model: {ASR_MODEL_ID}...")
+        asr_model, asr_processor = load(ASR_MODEL_ID)
+        print(f"Model {ASR_MODEL_ID} loaded successfully via mlx-vlm.")
+    else:
+        from mlx_audio.stt import load
+        print(f"Loading ASR model: {ASR_MODEL_ID}...")
+        asr_model = load(ASR_MODEL_ID)
+        print(f"ASR model {ASR_MODEL_ID} loaded successfully via mlx-audio.")
 except ImportError:
-    print("Error: mlx-audio is not installed. Please install it using:")
-    print("pip install mlx-audio")
+    print(f"Error: {'mlx-vlm' if use_mlx_vlm else 'mlx-audio'} is not installed. Please install it using:")
+    print(f"pip install {'mlx-vlm' if use_mlx_vlm else 'mlx-audio'}")
     sys.exit(1)
 except Exception as e:
     print(f"Error loading model: {e}")
@@ -98,7 +109,14 @@ def process_audio():
                 sf.write(temp_filename, segment_to_transcribe, RATE)
 
                 # Transcribe
-                result = asr_model.generate(temp_filename, language=SOURCE_LANGUAGE)
+                if use_mlx_vlm:
+                    prompt = f"Transcribe the following {SOURCE_LANGUAGE} speech exactly as spoken:"
+                    formatted_prompt = apply_chat_template(
+                        asr_processor, asr_model.config, prompt, num_audios=1
+                    )
+                    result = generate(asr_model, asr_processor, prompt, audio=[temp_filename], max_tokens=100, verbose=False, temperature=0.0)
+                else:
+                    result = asr_model.generate(temp_filename, language=SOURCE_LANGUAGE)
                 
                 # Parse output format reliably
                 transcribed_text = result.text.strip() if hasattr(result, 'text') else str(result).strip()
@@ -116,38 +134,39 @@ def process_audio():
                     last_transcribed_text = transcribed_text
 
                     # --- Translation with LM Studio ---
-                    try:
-                        headers = {"Content-Type": "application/json"}
-                        payload = {
-                            "messages": [
-                                {
-                                    "role": "system",
-                                    "content": f"You are a helpful assistant that translates {SOURCE_LANGUAGE} text to English."
-                                },
-                                {
-                                    "role": "user",
-                                    "content": f"Translate the following text to English. Do not provide any explanation or any other text: {transcribed_text}"
-                                }
-                            ],
-                            "temperature": 0.6,
-                            "max_tokens": 100
-                        }
-                        
-                        response = requests.post(LM_STUDIO_URL, headers=headers, json=payload)
-                        response.raise_for_status()
-                        
-                        response_data = response.json()
-                        translated_text = response_data['choices'][0]['message']['content'].strip()
-                        
-                        english_output = f"[{current_time}] ENG: {translated_text}"
-                        print(colored(english_output, "cyan", attrs=["bold"]))
-                        if log_file:
-                            log_file.write(english_output + "\n")
-                            log_file.flush()
-                    except requests.exceptions.RequestException as e:
-                        print(f"Error communicating with LM Studio: {e}")
-                    except (KeyError, IndexError) as e:
-                        print(f"Error parsing LM Studio response: {e}")
+                    if not use_mlx_vlm:
+                        try:
+                            headers = {"Content-Type": "application/json"}
+                            payload = {
+                                "messages": [
+                                    {
+                                        "role": "system",
+                                        "content": f"You are a helpful assistant that translates {SOURCE_LANGUAGE} text to English."
+                                    },
+                                    {
+                                        "role": "user",
+                                        "content": f"Translate the following text to English. Do not provide any explanation or any other text: {transcribed_text}"
+                                    }
+                                ],
+                                "temperature": 0.6,
+                                "max_tokens": 100
+                            }
+                            
+                            response = requests.post(LM_STUDIO_URL, headers=headers, json=payload)
+                            response.raise_for_status()
+                            
+                            response_data = response.json()
+                            translated_text = response_data['choices'][0]['message']['content'].strip()
+                            
+                            english_output = f"[{current_time}] ENG: {translated_text}"
+                            print(colored(english_output, "cyan", attrs=["bold"]))
+                            if log_file:
+                                log_file.write(english_output + "\n")
+                                log_file.flush()
+                        except requests.exceptions.RequestException as e:
+                            print(f"Error communicating with LM Studio: {e}")
+                        except (KeyError, IndexError) as e:
+                            print(f"Error parsing LM Studio response: {e}")
             
             except Exception as e:
                 print(f"Error during ASR transcription: {e}")
